@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">FoodRecipes</string>
+    <string name="search_query_hint">fish...</string>
+    <string name="menu_categories">Categories</string>
+    <string name="no_recipe_error_message">Network timeout! Check internet connection and try again</string>
+    <string name="search_results_exhausted">SEARCH RESULTS EXHAUSTED</string>
+    <string name="request_expired_message">Request expired. Click back and try again.</string>
+</resources>
