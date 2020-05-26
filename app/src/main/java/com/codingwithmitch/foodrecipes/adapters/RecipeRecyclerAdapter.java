@@ -302,4 +302,14 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
         Log.d(TAG, "Expired type : requestExpired: called");
         notifyDataSetChanged();
     }
+
+    public Recipe getSelectedRecipe(int position){
+        if(mRecipeList != null){
+            if(mRecipeList.size() > 0){
+                return mRecipeList.get(position);
+            }
+        }
+        return null;
+    }
+
 }
