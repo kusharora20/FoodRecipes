@@ -8,6 +8,7 @@ public final class Constants {
     public static final String API_KEY = "";
     public static final int NETWORK_TIMEOUT = 3000; // 3000 miliseconds or 3 seconds
     public static final Map<Integer, String> categories = new HashMap<>();
+    static final int IMAGE_QUALITY_IN_DB = 100;
 
     static{
         System.out.println("constants class called!!!");
@@ -21,4 +22,5 @@ public final class Constants {
         categories.put(7, "egg");
     }
 
+    public static final long RECIPE_REFRESH_TIME = 30 * 24 * 60 * 60; // 30 days time in seconds
 }

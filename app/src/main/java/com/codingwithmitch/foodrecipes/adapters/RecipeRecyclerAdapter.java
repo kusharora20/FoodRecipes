@@ -25,7 +25,7 @@ public class RecipeRecyclerAdapter extends RecyclerView.Adapter<RecyclerView.Vie
     private static final int RECIPE_TYPE = 1;
     private static final int LOADING_TYPE = 2;
     private static final int CATEGORY_TYPE = 3;
-    public static final int EXHAUSTED_TYPE = 4;
+    private static final int EXHAUSTED_TYPE = 4;
     private static final int EXPIRED_TYPE = 5;
     private static final String TAG = "RecipeRecyclerAdapter";
     private List<Recipe> mRecipeList;

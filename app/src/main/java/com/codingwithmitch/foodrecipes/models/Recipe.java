@@ -12,8 +12,10 @@ public class Recipe implements Parcelable{
     private String image_url;
     private float social_rank;
     private String ingredients[];
+    private byte[] imageAsBytes;
 
-    public Recipe(String title, String publisher, String recipe_id, String image_url, float social_rank, String ingredients[]){
+    public Recipe(String title, String publisher, String recipe_id, String image_url,
+                  float social_rank, String ingredients[]){
         this.title = title;
         this.publisher = publisher;
         this.recipe_id = recipe_id;
@@ -112,6 +114,14 @@ public class Recipe implements Parcelable{
         return 0;
     }
 
+    public byte[] getImageAsBytes() {
+        return imageAsBytes;
+    }
+
+    public void setImageAsBytes(byte[] imageAsBytes) {
+        this.imageAsBytes = imageAsBytes;
+    }
+
     @Override
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeString(title);
@@ -120,5 +130,6 @@ public class Recipe implements Parcelable{
         parcel.writeString(image_url);
         parcel.writeFloat(social_rank);
         parcel.writeStringArray(ingredients);
+        parcel.writeByteArray(imageAsBytes);
     }
 }

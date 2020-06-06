@@ -19,6 +19,7 @@ import com.codingwithmitch.foodrecipes.adapters.RecipeRecyclerAdapter;
 import com.codingwithmitch.foodrecipes.util.VerticalSpacingItemDecorator;
 import com.codingwithmitch.foodrecipes.viewmodel.RecipeListViewModel;
 import com.codingwithmitch.foodrecipes.viewmodel.RecipeListViewModelFactory;
+//import com.codingwithmitch.foodrecipes.viewmodel.RecipeListViewModelFactory;
 
 /**
  * This app implements MVVM in the following way:
@@ -44,8 +45,10 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
         mRecyclerView = findViewById(R.id.recipe_list);
 
 //        ViewModelProvider viewModelProvider = new ViewModelProvider(this);
-        recipeListViewModel = new ViewModelProvider(this, new RecipeListViewModelFactory(this.getApplication())).get(RecipeListViewModel.class);
-
+//        recipeListViewModel = viewModelProvider.get(RecipeListViewModel.class);
+        recipeListViewModel = new ViewModelProvider(
+                this, new RecipeListViewModelFactory(
+                        this.getApplication())).get(RecipeListViewModel.class);
         initRecycler();
         subscribeObservers();
         initSearchView();
@@ -56,8 +59,10 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
         // observes change of viewState LiveData in RecipeListViewModel class
         recipeListViewModel.getViewState().observe(this,
                 (RecipeListViewModel.ViewState viewState) -> {
-                    if (viewState != null) switch (viewState) {
+
+            if (viewState != null) switch (viewState) {
                         case CATEGORIES:
+
                             displaySearchCategories();
                         case RECIPES:
                             // viewing recipes
