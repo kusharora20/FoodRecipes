@@ -1,7 +1,10 @@
 package com.codingwithmitch.foodrecipes.viewmodel;
 
+import android.app.Application;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
@@ -9,8 +12,9 @@ import androidx.lifecycle.ViewModel;
 
 import com.codingwithmitch.foodrecipes.models.Recipe;
 import com.codingwithmitch.foodrecipes.repositories.RecipeRepository;
+import com.codingwithmitch.foodrecipes.util.Resource;
 
-public class RecipeViewModel extends ViewModel {
+public class RecipeViewModel extends AndroidViewModel {
 
     private RecipeRepository mRecipeRepository;
     private String recipeID;
@@ -19,13 +23,10 @@ public class RecipeViewModel extends ViewModel {
 
     private static final String TAG = "RecipeViewModel";
 
-    public RecipeViewModel() {
-        mRecipeRepository = RecipeRepository.getInstance();
-    }
-
-    public RecipeViewModel(SavedStateHandle state) {
+    public RecipeViewModel(@NonNull Application application, SavedStateHandle state) {
+        super(application);
         this.state = state;
-        mRecipeRepository = RecipeRepository.getInstance();
+        mRecipeRepository = RecipeRepository.getInstance(application.getApplicationContext());
     }
 
     public void searchSingleRecipe(String recipeID) {
@@ -34,7 +35,7 @@ public class RecipeViewModel extends ViewModel {
 
     }
 
-    public LiveData<Recipe> getSingleRecipe() {
+    public LiveData<Resource<Recipe>> getSingleRecipe() {
         return mRecipeRepository.getSingleRecipe();
     }
 

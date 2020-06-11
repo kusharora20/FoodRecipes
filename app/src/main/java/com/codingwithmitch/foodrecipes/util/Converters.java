@@ -11,9 +11,9 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public final class ImageAsBytes {
+public final class Converters {
 
-    private static final String TAG = "ImageAsBytes";
+    private static final String TAG = "Converters";
 
     public static byte[] convertImageToByteArray(String path) {
 
@@ -46,4 +46,19 @@ public final class ImageAsBytes {
         return BitmapFactory.decodeByteArray(array, 0, array.length);
     }
 
+    public static char[][] convertStringArrayToMultiCharArray(String[] ingredients) {
+        char[][] array = new char[ingredients.length][];
+        for (int i = 0; i < ingredients.length; i++) {
+            array[i] = ingredients[i].toCharArray();
+        }
+        return array;
+    }
+
+    public static String[] convertMultiCharArrayToStringArray(char[][] ingredients) {
+        String[] array = new String[ingredients.length];
+                for (int i = 0; i < ingredients.length; i++) {
+            array[i] = new String(ingredients[i]);
+        }
+        return array;
+    }
 }

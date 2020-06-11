@@ -16,9 +16,14 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.codingwithmitch.foodrecipes.adapters.OnRecipeListener;
 import com.codingwithmitch.foodrecipes.adapters.RecipeRecyclerAdapter;
+import com.codingwithmitch.foodrecipes.models.Recipe;
+import com.codingwithmitch.foodrecipes.util.Resource;
 import com.codingwithmitch.foodrecipes.util.VerticalSpacingItemDecorator;
 import com.codingwithmitch.foodrecipes.viewmodel.RecipeListViewModel;
+import com.codingwithmitch.foodrecipes.viewmodel.RecipeListViewModel.ViewState;
 import com.codingwithmitch.foodrecipes.viewmodel.RecipeListViewModelFactory;
+
+import java.util.List;
 //import com.codingwithmitch.foodrecipes.viewmodel.RecipeListViewModelFactory;
 
 /**
@@ -48,24 +53,47 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
 //        recipeListViewModel = viewModelProvider.get(RecipeListViewModel.class);
         recipeListViewModel = new ViewModelProvider(
                 this, new RecipeListViewModelFactory(
-                        this.getApplication())).get(RecipeListViewModel.class);
-        initRecycler();
-        subscribeObservers();
-        initSearchView();
+                this.getApplication())).get(RecipeListViewModel.class);
+
         setSupportActionBar(findViewById(R.id.toolbar));
+        initRecycler();
+        initSearchView();
+        subscribeObservers();
     }
 
     private void subscribeObservers() {
         // observes change of viewState LiveData in RecipeListViewModel class
         recipeListViewModel.getViewState().observe(this,
-                (RecipeListViewModel.ViewState viewState) -> {
+                (ViewState viewState) -> {
 
-            if (viewState != null) switch (viewState) {
+                    if (viewState != null) switch (viewState) {
                         case CATEGORIES:
-
                             displaySearchCategories();
+                            break;
                         case RECIPES:
-                            // viewing recipes
+
+                            recipeListViewModel.searchRecipes(query);
+
+                            recipeListViewModel.getRecipes().observe(this,
+                                    (Resource<List<Recipe>> resource) -> {
+                                        switch (resource.getStatus()) {
+                                            case SUCCESS:
+                                                mRecipeRecyclerAdapter.setRecipes(resource.data);
+                                                Log.d(TAG, "subscribeObservers: case SUCCESS");
+                                                break;
+                                            case EMPTY:
+                                                Log.d(TAG, "subscribeObservers: case EMPTY");
+                                                break;
+                                            case ERROR:
+                                                Log.d(TAG, "subscribeObservers: case ERROR");
+                                                break;
+                                        }
+                                    }
+                            );
+                            break;
+
+                        case VIEWING_RECIPE_DETAILS:
+                            break;
                     }
                 });
     }
@@ -111,7 +139,9 @@ public class RecipeListActivity extends BaseActivity implements OnRecipeListener
 
     @Override
     public void onCategoryClick(String category) {
-
+        this.query = category;
+        Log.d(TAG, "onCategoryClick: " + query);
+        recipeListViewModel.setViewState(ViewState.RECIPES);
     }
 
     public void displaySearchCategories() {

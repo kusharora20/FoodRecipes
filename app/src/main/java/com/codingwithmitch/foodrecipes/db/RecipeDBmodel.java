@@ -2,7 +2,10 @@ package com.codingwithmitch.foodrecipes.db;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
+import androidx.room.TypeConverter;
+import androidx.room.TypeConverters;
 
 @Entity(tableName = "recipes")
 public class RecipeDBmodel {
@@ -14,7 +17,9 @@ public class RecipeDBmodel {
     private String publisher;
     private byte[] imageAsBytes;
     private float social_rank;
-    private String ingredients[];
+
+    @TypeConverters({DataConverters.class})
+    private String[] ingredients;
     private long timeStamp;
 
     public RecipeDBmodel(){
@@ -62,19 +67,19 @@ public class RecipeDBmodel {
         this.social_rank = social_rank;
     }
 
+    public long getTimeStamp() {
+        return timeStamp;
+    }
+
+    public void setTimeStamp(long timeStamp) {
+        this.timeStamp = timeStamp/1000;
+    }
+
     public String[] getIngredients() {
         return ingredients;
     }
 
     public void setIngredients(String[] ingredients) {
         this.ingredients = ingredients;
-    }
-
-    public long getTimeStampInSeconds() {
-        return timeStamp;
-    }
-
-    public void setTimeStampInSeconds(long currentTimeInMillis) {
-        this.timeStamp = currentTimeInMillis/1000;
     }
 }

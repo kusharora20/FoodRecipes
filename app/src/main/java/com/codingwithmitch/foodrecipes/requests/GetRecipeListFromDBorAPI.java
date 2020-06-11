@@ -1,6 +1,7 @@
 package com.codingwithmitch.foodrecipes.requests;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
@@ -10,7 +11,7 @@ import com.codingwithmitch.foodrecipes.db.RecipeDAO;
 import com.codingwithmitch.foodrecipes.db.RecipeDBmodel;
 import com.codingwithmitch.foodrecipes.models.Recipe;
 import com.codingwithmitch.foodrecipes.util.AppExecutors;
-import com.codingwithmitch.foodrecipes.util.ImageAsBytes;
+import com.codingwithmitch.foodrecipes.util.Converters;
 import com.codingwithmitch.foodrecipes.util.NetworkBoundResource;
 
 import java.util.ArrayList;
@@ -18,52 +19,70 @@ import java.util.List;
 
 import retrofit2.Response;
 
-public class GetRecipeListFromDBorAPI extends NetworkBoundResource<String, List<Recipe>> {
+public final class GetRecipeListFromDBorAPI extends NetworkBoundResource<String, List<Recipe>> {
 
+    private static final String TAG = "GetRecipeListFromDBorAP";
     private static RecipeDAO recipeDAO;
-    private static int page = 1;
+    private int page = 1;
+    private String searchString;
+    private static GetRecipeListFromDBorAPI instance;
+    private List<String> list;
+
     private List<Recipe> resultOfApiCall;
-    private static String searchString;
     private MediatorLiveData<List<Recipe>> mListMediatorLiveData;
 
-    private GetRecipeListFromDBorAPI(Context context, String searchQuery) {
-        super(context, searchQuery);
-    }
+    public static GetRecipeListFromDBorAPI search(Context context, String searchQuery, int pageNumber) {
+        recipeDAO = (recipeDAO == null) ?
+                AppDatabase.get(context.getApplicationContext()).getRecipeDAO() : recipeDAO;
+        if (instance == null)
+            instance = new GetRecipeListFromDBorAPI(context, searchQuery, pageNumber);
 
-    public static GetRecipeListFromDBorAPI search(Context context, String searchQuery, int pageNumber){
-        recipeDAO = AppDatabase.get(context.getApplicationContext()).getRecipeDAO();
-        page = pageNumber;
-        searchString = searchQuery;
-        GetRecipeListFromDBorAPI instance = new GetRecipeListFromDBorAPI(context, searchQuery);
+        else {
+            instance.searchString = searchQuery;
+            instance.page = pageNumber;
+        }
+        instance.searchDBorMakeAPIcall(searchQuery);
         return instance;
     }
 
+    private GetRecipeListFromDBorAPI(Context context, String searchQuery, int pageNumber) {
+        super(context);
+        this.searchString = searchQuery;
+        this.page = pageNumber;
+    }
+
+    // TODO: to implement method in background thread
     /**
      * @param searchQuery
      * @return true if data must be fetched from API call, false if data must be fetched from DB
      */
     @Override
     protected boolean checkToFetchFromAPIorDB(String searchQuery) {
+        return true;
 
-        List<RecipeDBmodel> list = recipeDAO.searchIfRecipesAvailable(searchQuery, 1);
-        return !(list!=null && list.size()>0);
+//        List<String> list = recipeDAO.searchIfRecipesAvailable(instance.searchString, instance.page);
+//        return !(list != null && list.size() > ((instance.page - 1) * 30));
     }
 
     /**
      * makes API call to get data from API
-     *
      * @param searchQuery
      * @return API call result as LiveData
      */
     @Override
     protected LiveData<Response<List<Recipe>>> makeAPIcall(String searchQuery) {
+        LiveData<Response<List<Recipe>>> liveData =
+                RecipeApiClient.getInstance().makeAPIcall(instance.searchString, instance.page);
 
-        return RecipeApiClient.getInstance().makeAPIcall(searchQuery, page);
+        new MediatorLiveData<>().addSource(liveData, (Response<List<Recipe>> response) ->{
+            Log.d(TAG, "makeAPIcall: called");
+        });
 
+        return liveData;
     }
 
     @Override
-    protected MediatorLiveData<List<Recipe>> loadFromDB(String searchQuery) {
+    protected MediatorLiveData<List<Recipe>> loadFromDB() {
         mListMediatorLiveData = new MediatorLiveData<>();
 
         LoadFromDB runnable = new LoadFromDB();
@@ -79,7 +98,6 @@ public class GetRecipeListFromDBorAPI extends NetworkBoundResource<String, List<
     @Override
     protected void saveDataToDB(List<Recipe> resultOfApiCall) {
         this.resultOfApiCall = resultOfApiCall;
-
         SaveToDB runnable = new SaveToDB();
         AppExecutors.getInstance().diskIO().submit(runnable);
     }
@@ -90,15 +108,14 @@ public class GetRecipeListFromDBorAPI extends NetworkBoundResource<String, List<
      */
     @Override
     protected boolean dataIsNull(List<Recipe> returnedData) {
-        return returnedData!=null && returnedData.size() > 0;
+        return returnedData != null && returnedData.size() > 0;
     }
 
-
-    private class LoadFromDB implements Runnable{
+    private class LoadFromDB implements Runnable {
 
         @Override
         public void run() {
-            List<RecipeDBmodel> list = recipeDAO.searchRecipes(searchString, page);
+            List<RecipeDBmodel> list = recipeDAO.searchRecipes(instance.searchString, instance.page);
             List<Recipe> recipeList = new ArrayList<>();
             Recipe recipe = new Recipe();
 
@@ -120,22 +137,36 @@ public class GetRecipeListFromDBorAPI extends NetworkBoundResource<String, List<
         }
     }
 
-    private class SaveToDB implements Runnable{
+    private class SaveToDB implements Runnable {
         RecipeDBmodel recipeDBmodel = new RecipeDBmodel();
 
         @Override
         public void run() {
-            resultOfApiCall.forEach((Recipe recipe) -> {
-                recipeDBmodel.setImageAsBytes(ImageAsBytes.convertImageToByteArray(recipe.getImage_url()));
-                recipeDBmodel.setTitle(recipe.getTitle());
-                recipeDBmodel.setTimeStampInSeconds(System.currentTimeMillis());
-                recipeDBmodel.setSocial_rank(recipe.getSocial_rank());
-                recipeDBmodel.setRecipe_id(recipe.getRecipe_id());
-                recipeDBmodel.setIngredients(recipe.getIngredients());
-                recipeDBmodel.setPublisher(recipe.getPublisher());
-                recipeDAO.insertRecipe(recipeDBmodel);
-            });
+            resultOfApiCall.forEach(
+                    (Recipe recipe) -> {
+                        if (recipeDAO.getRecipeId(recipe.getRecipe_id()) == null) {
+                            recipeDBmodel.setImageAsBytes(Converters.convertImageToByteArray(recipe.getImage_url()));
+                            recipeDBmodel.setTitle(recipe.getTitle());
+                            recipeDBmodel.setTimeStamp(System.currentTimeMillis());
+                            recipeDBmodel.setSocial_rank(recipe.getSocial_rank());
+                            recipeDBmodel.setRecipe_id(recipe.getRecipe_id());
+                            recipeDBmodel.setPublisher(recipe.getPublisher());
+                            recipeDBmodel.setIngredients(recipe.getIngredients());
+
+                            recipeDAO.insertRecipe(recipeDBmodel);
+                        }
+                    }
+            );
         }
     }
+
+    private class CheckToFetchFromAPIorDBRunnable implements Runnable{
+
+        @Override
+        public void run() {
+            list = recipeDAO.searchIfRecipesAvailable(instance.searchString, instance.page);
+        }
+    }
+
 
 }

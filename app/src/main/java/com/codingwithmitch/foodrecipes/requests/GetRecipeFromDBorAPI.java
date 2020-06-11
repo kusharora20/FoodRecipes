@@ -10,7 +10,7 @@ import com.codingwithmitch.foodrecipes.db.RecipeDAO;
 import com.codingwithmitch.foodrecipes.db.RecipeDBmodel;
 import com.codingwithmitch.foodrecipes.models.Recipe;
 import com.codingwithmitch.foodrecipes.util.AppExecutors;
-import com.codingwithmitch.foodrecipes.util.ImageAsBytes;
+import com.codingwithmitch.foodrecipes.util.Converters;
 import com.codingwithmitch.foodrecipes.util.NetworkBoundResource;
 
 import retrofit2.Response;
@@ -26,19 +26,28 @@ public final class GetRecipeFromDBorAPI extends NetworkBoundResource<String, Rec
 
     private static final String TAG = "GetRecipeFromDBorAPI";
     private static RecipeDAO recipeDAO;
-    private static String searchQuery;
+    private String searchQuery;
+    private static GetRecipeFromDBorAPI instance;
+
     private RecipeDBmodel recipeDBmodel;
     private Recipe resultOfApiCall;
-    MediatorLiveData<Recipe> recipeLiveData;
-
-    private GetRecipeFromDBorAPI(Context context, String searchQuery) {
-        super(context, searchQuery);
-    }
+    private MediatorLiveData<Recipe> recipeLiveData;
 
     public static GetRecipeFromDBorAPI search(String recipeID, Context context) {
-        recipeDAO = AppDatabase.get(context.getApplicationContext()).getRecipeDAO();
-        searchQuery = recipeID;
-        return new GetRecipeFromDBorAPI(context, recipeID);
+        recipeDAO = (recipeDAO == null) ?
+                AppDatabase.get(context.getApplicationContext()).getRecipeDAO() : recipeDAO;
+
+        if (instance == null) {
+            instance = new GetRecipeFromDBorAPI(context, recipeID);
+        } else instance.searchQuery = recipeID;
+
+        instance.searchDBorMakeAPIcall(recipeID);
+        return instance;
+    }
+
+    private GetRecipeFromDBorAPI(Context context, String recipeID) {
+        super(context);
+        this.searchQuery = recipeID;
     }
 
     /**
@@ -48,7 +57,7 @@ public final class GetRecipeFromDBorAPI extends NetworkBoundResource<String, Rec
     @Override
     protected boolean checkToFetchFromAPIorDB(String recipeID) {
 
-        return !(recipeDAO.getRecipe(recipeID) == null);
+        return !(recipeDAO.getRecipeId(recipeID) == null);
     }
 
     /**
@@ -60,16 +69,15 @@ public final class GetRecipeFromDBorAPI extends NetworkBoundResource<String, Rec
     @Override
     protected LiveData<Response<Recipe>> makeAPIcall(String searchQuery) {
 
-        return RecipeApiClient.getInstance().makeAPIcall(searchQuery);
+        return RecipeApiClient.getInstance().makeAPIcall(instance.searchQuery);
 
     }
 
     /**
-     * @param searchQuery
      * @return data from DB as observable LiveData
      */
     @Override
-    protected MediatorLiveData<Recipe> loadFromDB(String searchQuery) {
+    protected MediatorLiveData<Recipe> loadFromDB() {
 
         recipeLiveData = new MediatorLiveData<>();
         LoadFromDB runnable = new LoadFromDB();
@@ -105,15 +113,16 @@ public final class GetRecipeFromDBorAPI extends NetworkBoundResource<String, Rec
     private class SaveDataToDB implements Runnable {
         @Override
         public void run() {
+
             recipeDBmodel = new RecipeDBmodel();
-            recipeDBmodel.setIngredients(resultOfApiCall.getIngredients());
+//            recipeDBmodel.setIngredients(resultOfApiCall.getIngredients());
             recipeDBmodel.setPublisher(resultOfApiCall.getPublisher());
             recipeDBmodel.setRecipe_id(resultOfApiCall.getRecipe_id());
             recipeDBmodel.setSocial_rank(resultOfApiCall.getSocial_rank());
-            recipeDBmodel.setTimeStampInSeconds(System.currentTimeMillis());
+            recipeDBmodel.setTimeStamp(System.currentTimeMillis());
             recipeDBmodel.setTitle(resultOfApiCall.getTitle());
 
-            byte[] array = ImageAsBytes.convertImageToByteArray(resultOfApiCall.getImage_url());
+            byte[] array = Converters.convertImageToByteArray(resultOfApiCall.getImage_url());
 
             recipeDBmodel.setImageAsBytes(array);
         }
@@ -123,11 +132,11 @@ public final class GetRecipeFromDBorAPI extends NetworkBoundResource<String, Rec
 
         @Override
         public void run() {
-            recipeDBmodel = recipeDAO.getRecipe(searchQuery);
+            recipeDBmodel = recipeDAO.getRecipe(instance.searchQuery);
             Recipe recipe = new Recipe();
 
             recipe.setTitle(recipeDBmodel.getTitle());
-            recipe.setIngredients(recipeDBmodel.getIngredients());
+//            recipe.setIngredients(recipeDBmodel.getIngredients());
             recipe.setSocial_rank(recipeDBmodel.getSocial_rank());
             recipe.setPublisher(recipeDBmodel.getPublisher());
             recipe.setRecipe_id(recipeDBmodel.getRecipe_id());
@@ -135,6 +144,4 @@ public final class GetRecipeFromDBorAPI extends NetworkBoundResource<String, Rec
             recipeLiveData.setValue(recipe);
         }
     }
-
-
 }

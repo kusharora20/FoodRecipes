@@ -33,8 +33,7 @@ class CategoryViewHolder extends RecyclerView.ViewHolder implements View.OnClick
     @Override
     public void onClick(View v) {
 
-        mOnRecipeListener.onCategoryClick(
-                title.getText().toString());
+        mOnRecipeListener.onCategoryClick(title.getText().toString());
     }
 
     // setter methods...

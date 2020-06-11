@@ -34,12 +34,17 @@ dependencies {
 
     //Annotations
     implementation 'com.android.support:support-annotations:28.0.0'
+    implementation "android.arch.persistence.room:runtime:$room_version"
+
+    //Gson
+    implementation 'com.google.code.gson:gson:2.8.6'
 
     // debugImplementation because LeakCanary should only run in debug builds.
     debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.3'
 
     //Room
     implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "android.arch.persistence.room:compiler:$room_version"
 
     // ViewModel
     implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycle_version"
@@ -76,4 +81,8 @@ dependencies {
     implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
     implementation "com.squareup.retrofit2:converter-gson:$retrofitVersion"
 
+    //RxJava3
+    def rxjava_version = "3.0.0"
+    implementation "io.reactivex.rxjava3:rxjava:$rxjava_version"
+    implementation "io.reactivex.rxjava3:rxandroid:$rxjava_version"
 }

@@ -18,6 +18,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
 import com.codingwithmitch.foodrecipes.models.Recipe;
+import com.codingwithmitch.foodrecipes.util.Resource;
 import com.codingwithmitch.foodrecipes.viewmodel.RecipeViewModel;
 
 import static android.view.View.GONE;
@@ -66,15 +67,13 @@ public class RecipeActivity extends BaseActivity {
         /**
          * Observer which observes change in {@link com.codingwithmitch.foodrecipes.requests.RecipeApiClient#mRecipe}
          */
-        mRecipeViewModel.getSingleRecipe().observe(this, new Observer<Recipe>() {
-            @Override
-            public void onChanged(Recipe recipe) {
-                if (getRecipeIDFromIntent().equals(recipe.getRecipe_id())) {
-                    mRecipe = recipe;
-                    populateRecipeData();
+        mRecipeViewModel.getSingleRecipe().observe(this, (Resource<Recipe> recipe) -> {
+                    if (getRecipeIDFromIntent().equals(recipe.data.getRecipe_id())) {
+                        mRecipe = recipe.data;
+                        populateRecipeData();
+                    }
                 }
-            }
-        });
+        );
 
         /**
          * Observer which observes change in {@link com.codingwithmitch.foodrecipes.requests.RecipeApiClient#recipeRequestTimedOut}
@@ -128,7 +127,6 @@ public class RecipeActivity extends BaseActivity {
     }
 
     public String getRecipeIDFromIntent() {
-
         return getIntent().getStringExtra("recipe");
     }
 }

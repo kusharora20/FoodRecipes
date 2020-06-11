@@ -22,22 +22,25 @@ public interface RecipeDAO {
 
     @Query("select * from recipes " +
             "where  title LIKE '%' || :query || '%' " +
-            "OR ingredients LIKE '%' || :query || '%'" +
+//            "OR ingredients LIKE '%' || :query || '%'" +
             "ORDER BY social_rank DESC " +
-            "LIMIT :pageNumber*30" )
+            "LIMIT :pageNumber*30")
     List<RecipeDBmodel> searchRecipes(String query, int pageNumber);
 
-    @Query("select * from recipes " +
+    @Query("select title from recipes " +
             "where  title LIKE '%' || :query || '%' " +
-            "OR ingredients LIKE '%' || :query || '%'" +
+//            "OR ingredients LIKE '%' || :query || '%'" +
             "ORDER BY social_rank DESC " +
-            "LIMIT 1" )
-    List<RecipeDBmodel> searchIfRecipesAvailable(String query, int pageNumber);
+            "LIMIT :pageNumber*30")
+    List<String> searchIfRecipesAvailable(String query, int pageNumber);
 
     @Delete
     void deleteRecipe(RecipeDBmodel recipe);
 
     @Query("select * from recipes where recipe_id = :recipeID")
     RecipeDBmodel getRecipe(String recipeID);
+
+    @Query("select recipe_id from recipes where recipe_id = :recipeID")
+    String getRecipeId(String recipeID);
 
 }

@@ -1,5 +1,7 @@
 package com.codingwithmitch.foodrecipes.requests;
 
+import android.util.Log;
+
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -10,6 +12,7 @@ import com.codingwithmitch.foodrecipes.requests.response.RecipeSearchResponse;
 import com.codingwithmitch.foodrecipes.util.Constants;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +30,7 @@ public class RecipeApiClient {
 
     private static final String TAG = "RecipeApiClient";
     private static RecipeApiClient instance;
+
     private MutableLiveData<List<Recipe>> recipes;
     private MutableLiveData<Recipe> mRecipe;
     private MutableLiveData<Boolean> recipeRequestTimedOut;
@@ -35,6 +39,7 @@ public class RecipeApiClient {
     private String searchQuery;
     private MutableLiveData<Response<Recipe>> mRecipeResponseLiveData;
     private MutableLiveData<Response<List<Recipe>>> mRecipeListResponseLiveData;
+    private List<Recipe> list;
     private int pageNumber = 1;
 
     // returns a singleton instance of this class
@@ -49,6 +54,7 @@ public class RecipeApiClient {
         recipeRequestTimedOut = new MutableLiveData<>();
         searchTimedOut = new MutableLiveData<>();
         mRecipeResponseLiveData = new MutableLiveData<>();
+        mRecipeListResponseLiveData = new MutableLiveData<>();
     }
 
     // simple getter for the LiveData (List of Recipes)
@@ -75,7 +81,7 @@ public class RecipeApiClient {
     }
 
     // API call for single recipe
-    public LiveData<Response<Recipe>> makeAPIcall(String searchQuery) {
+    LiveData<Response<Recipe>> makeAPIcall(String searchQuery) {
         this.searchQuery = searchQuery;
         RecipeApiRunnable runnable = new RecipeApiRunnable();
 
@@ -93,6 +99,7 @@ public class RecipeApiClient {
         return mRecipeResponseLiveData;
     }
 
+    // Runnable for fetching single recipe
     private class RecipeApiRunnable implements Runnable {
 
         @Override
@@ -112,8 +119,10 @@ public class RecipeApiClient {
     }
 
     // API call for list of recipes
-    public LiveData<Response<List<Recipe>>> makeAPIcall(String searchQuery, int pagenNumber) {
+    LiveData<Response<List<Recipe>>> makeAPIcall(String searchQuery, int pageNumber) {
         this.searchQuery = searchQuery;
+        this.pageNumber = pageNumber;
+        if (pageNumber == 1) list = new ArrayList<>();
         RecipeListApiRunnable runnable = new RecipeListApiRunnable();
 
         Future handler = AppExecutors.getInstance().diskIO().submit(runnable);
@@ -131,6 +140,7 @@ public class RecipeApiClient {
 
     }
 
+    // Runnable for fetching list of recipes
     private class RecipeListApiRunnable implements Runnable {
 
         @Override
@@ -141,9 +151,13 @@ public class RecipeApiClient {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            list.addAll(response.body().getRecipes());
 
-            Response<List<Recipe>> recipeResponse = Response.success(response.body().getRecipes());
+            Response<List<Recipe>> recipeResponse = Response.success(list);
+
             mRecipeListResponseLiveData.postValue(recipeResponse);
+            Log.d(TAG, "run: mRecipeListResponseLiveData.getValue().body().toString(): " +
+                    mRecipeListResponseLiveData.getValue().body().toString());
 
         }
     }
@@ -163,5 +177,8 @@ public class RecipeApiClient {
                 .getRecipe(Constants.API_KEY, recipeID);
     }
 
+    public MutableLiveData<Response<List<Recipe>>> getRecipeListResponseLiveData() {
+        return mRecipeListResponseLiveData;
+    }
 }
 

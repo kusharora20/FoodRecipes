@@ -1,6 +1,7 @@
 package com.codingwithmitch.foodrecipes.util;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.UiThread;
 import androidx.annotation.WorkerThread;
@@ -12,35 +13,38 @@ import retrofit2.Response;
 
 public abstract class NetworkBoundResource<SearchType, ResultType> {
 
-    private ResultType result;
+    private static final String TAG = "NetworkBoundResource";
     private MutableLiveData<Resource<ResultType>> resultAsLiveData;
     private MediatorLiveData<ResultType> mediatorResult;
-    private SearchType searchQuery;
     private Context mContext;
 
-    public NetworkBoundResource(Context context, SearchType searchQuery) {
+    public NetworkBoundResource(Context context) {
         this.mContext = context;
-        searchDBorMakeAPIcall(searchQuery);
+        resultAsLiveData = new MutableLiveData<>();
+        mediatorResult = new MediatorLiveData<>();
+//        searchDBorMakeAPIcall(searchQuery);
     }
 
-    private void searchDBorMakeAPIcall(SearchType searchQuery) {
+    public void searchDBorMakeAPIcall(SearchType searchQuery) {
 
         resultAsLiveData.setValue(Resource.loading());
 
         if (searchQuery != null) {
             if (checkToFetchFromAPIorDB(searchQuery)) {
+                Log.d(TAG, "searchDBorMakeAPIcall: " + searchQuery);
                 fetchFromNetwork(searchQuery);
             }
             // search DB and set data to it; notify observer (Activity) to update UI
             else {
-                mediatorResult.addSource(loadFromDB(searchQuery), (ResultType resultFromDB) -> {
+                MediatorLiveData<ResultType> mediatorLiveData = loadFromDB();
+
+                mediatorResult.addSource(mediatorLiveData, (ResultType resultFromDB) -> {
+                    mediatorResult.removeSource(mediatorLiveData);
                     resultAsLiveData.setValue(Resource.success(resultFromDB));
                 });
             }
         }
-
     }
-
 
     // makeAPIcall and subscribe to the livedata result
     // if result !=null save to DB,
@@ -51,11 +55,12 @@ public abstract class NetworkBoundResource<SearchType, ResultType> {
         LiveData<Response<ResultType>> responseLiveData = makeAPIcall(searchQuery);
 
         mediatorResult.addSource(responseLiveData, (Response<ResultType> apiResponse) -> {
-                    mediatorResult.removeSource(responseLiveData);
-                    Resource<ResultType> resultTypeResource = null;
 
+                    Resource<ResultType> resultTypeResource = null;
+                    Log.d(TAG, "fetchFromNetwork: apiResponse.code() = " + apiResponse.code());
                     if (apiResponse.isSuccessful()) {
                         if (apiResponse.code() == 200 && apiResponse.body() != null) {
+                            Log.d(TAG, "fetchFromNetwork: response.code() = 200");
                             saveDataToDB(apiResponse.body());
                             resultTypeResource = Resource.success(apiResponse.body());
                         } else if (apiResponse.code() == 204 || apiResponse.body() == null) {
@@ -65,8 +70,11 @@ public abstract class NetworkBoundResource<SearchType, ResultType> {
                         resultTypeResource = Resource.error(apiResponse.message());
                     }
                     resultAsLiveData.setValue(resultTypeResource);
+                    mediatorResult.removeSource(responseLiveData);
                 }
         );
+
+        Log.d(TAG, "fetchFromNetwork: mediatorResult.hasActiveObservers(): " + mediatorResult.hasActiveObservers());
     }
 
     /**
@@ -81,15 +89,13 @@ public abstract class NetworkBoundResource<SearchType, ResultType> {
      * @param searchQuery
      * @return API call result as LiveData
      */
-    @WorkerThread
     protected abstract LiveData<Response<ResultType>> makeAPIcall(SearchType searchQuery);
 
     /**
-     * @param searchQuery
      * @return data from DB as observable LiveData
      */
     @UiThread
-    protected abstract MediatorLiveData<ResultType> loadFromDB(SearchType searchQuery);
+    protected abstract MediatorLiveData<ResultType> loadFromDB();
 
     /**
      * saves result from API call to DB in background thread
